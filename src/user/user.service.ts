@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
-import { CreateUserInput } from './dots/create-user.dto';
+import { CreateUserInput, FindUserRes } from './dots/create-user.dto';
 import { LoginUserInput } from './dots/login.dto';
 import { User } from './user.entity';
 
@@ -14,12 +14,22 @@ export class UserService {
   ) {}
 
   // 通过 email 字段查询用户是否存在
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return await this.user.findOne({ where: { email } });
+  async getUserByEmail(email: string): Promise<FindUserRes> {
+    try {
+      const targetUser = await this.user.findOne({ where: { email } });
+      return { ok: !!targetUser, user: targetUser };
+    } catch (error) {
+      return { ok: false, error };
+    }
   }
 
   async getUserById(id: string) {
-    return await this.user.findOne({ where: { id } });
+    try {
+      const targetUser = await this.user.findOne({ where: { id } });
+      return { ok: !!targetUser, user: targetUser };
+    } catch (error) {
+      return { ok: false, error };
+    }
   }
 
   // 创建用户

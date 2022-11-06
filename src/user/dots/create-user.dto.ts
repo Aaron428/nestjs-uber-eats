@@ -10,3 +10,8 @@ export class CreateUserResponse extends CommonResponse {
   @Field(() => String, { nullable: true })
   token?: string;
 }
+
+@ObjectType()
+export class FindUserRes extends CommonResponse {
+  user?: User;
+}
