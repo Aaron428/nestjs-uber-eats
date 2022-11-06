@@ -35,10 +35,10 @@ const mockRepository = () => ({
   create: jest.fn(),
 });
 
-const mockJwtService = {
+const mockJwtService = () => ({
   sign: jest.fn(() => 'mock token'),
   verify: jest.fn(),
-};
+});
 
 describe('user service', () => {
   let service: UserService;
@@ -54,7 +54,7 @@ describe('user service', () => {
         },
         {
           provide: JwtService,
-          useValue: mockJwtService,
+          useValue: mockJwtService(),
         },
       ],
     }).compile();
@@ -113,10 +113,11 @@ describe('user service', () => {
     it('should return token if password is correct', async () => {
       const mockUserData = {
         ...getMockUser,
-        checkPassword: jest.fn(() => Promise.resolve(false)),
+        checkPassword: jest.fn(() => Promise.resolve(true)),
       };
       userRepository.findOne.mockResolvedValue(mockUserData);
-      await service.userLogin(loginUser);
+      const res = await service.userLogin(loginUser);
+      expect(res).toEqual({ ok: true, token: 'mock token' });
       expect(jwtService.sign).toHaveBeenCalledTimes(1);
       expect(jwtService.sign).toHaveBeenCalledWith({ id: expect.any(Number) });
     });
