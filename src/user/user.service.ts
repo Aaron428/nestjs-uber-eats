@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
@@ -14,7 +14,7 @@ export class UserService {
   ) {}
 
   // 通过 email 字段查询用户是否存在
-  async getUserByEmail(email: string): Promise<User | null> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return await this.user.findOne({ where: { email } });
   }
 
@@ -25,16 +25,21 @@ export class UserService {
   // 创建用户
   async createAccount(createUserInput: CreateUserInput) {
     const response: CreateUserResponse = { ok: false };
-    const checkEmailIsUsed = await this.getUserByEmail(createUserInput.email);
-    if (checkEmailIsUsed) {
-      Object.assign(response, { ok: false, error: '邮箱已被使用' });
+    try {
+      const checkEmailIsUsed = await this.getUserByEmail(createUserInput.email);
+      if (checkEmailIsUsed) {
+        Object.assign(response, { ok: false, error: '邮箱已被使用' });
+        return response;
+      }
+      const newUser = this.user.create(createUserInput);
+      const res = await this.user.save(newUser);
+      const token = this.jwtService.sign({ id: res.id });
+      Object.assign(response, { ok: true, error: null, token });
       return response;
+    } catch (e) {
+      console.log(e);
+      return { ok: false, error: '创建用户失败' };
     }
-    const newUser = this.user.create(createUserInput);
-    const res = await this.user.save(newUser);
-    const token = this.jwtService.sign({ id: res.id });
-    Object.assign(response, { ok: true, error: null, token });
-    return response;
   }
 
   // 用户登陆
