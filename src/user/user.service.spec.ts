@@ -122,5 +122,47 @@ describe('user service', () => {
       expect(jwtService.sign).toHaveBeenCalledWith({ id: expect.any(Number) });
     });
   });
+
+  describe('find user by id', () => {
+    const findOneParm = {
+      where: { id: expect.any(String) },
+    };
+    it('should fail if user id is incorrect', async () => {
+      userRepository.findOne.mockResolvedValue(undefined);
+      const res = await service.getUserById('mock-id-123');
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(userRepository.findOne).toHaveBeenCalledWith(findOneParm);
+      expect(res).toEqual({ ok: false });
+    });
+
+    it('should return user if ids correct', async () => {
+      userRepository.findOne.mockResolvedValue(getMockUser);
+      const res = await service.getUserById('mock-id-123');
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(userRepository.findOne).toHaveBeenCalledWith(findOneParm);
+      expect(res).toEqual({ ok: true, user: res.user });
+    });
+  });
+
+  describe('find user by email', () => {
+    const findOneParm = {
+      where: { email: expect.any(String) },
+    };
+    it('should fail if user id is incorrect', async () => {
+      userRepository.findOne.mockResolvedValue(undefined);
+      const res = await service.getUserByEmail('mock-email@email.com');
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(userRepository.findOne).toHaveBeenCalledWith(findOneParm);
+      expect(res).toEqual({ ok: false });
+    });
+
+    it('should return user if ids correct', async () => {
+      userRepository.findOne.mockResolvedValue(getMockUser);
+      const res = await service.getUserByEmail('mock-email@email.com');
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(userRepository.findOne).toHaveBeenCalledWith(findOneParm);
+      expect(res).toEqual({ ok: true, user: res.user });
+    });
+  });
   it.todo('getUserById');
 });
