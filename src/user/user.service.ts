@@ -14,9 +14,12 @@ export class UserService {
   ) {}
 
   // 通过 email 字段查询用户是否存在
-  async getUserByEmail(email: string): Promise<FindUserRes> {
+  async getUserByEmail(
+    email: string,
+    select?: Array<keyof User>,
+  ): Promise<FindUserRes> {
     try {
-      const targetUser = await this.user.findOne({ where: { email } });
+      const targetUser = await this.user.findOne({ where: { email }, select });
       return { ok: !!targetUser, user: targetUser };
     } catch (error) {
       return { ok: false, error };
@@ -35,10 +38,8 @@ export class UserService {
   // 创建用户
   async createAccount(createUserInput: CreateUserInput) {
     try {
-      const checkEmailIsUsed = await this.getUserByEmail(createUserInput.email);
-      if (checkEmailIsUsed) {
-        return { ok: false, error: '邮箱已被使用' };
-      }
+      const { ok } = await this.getUserByEmail(createUserInput.email);
+      if (ok) return { ok: false, error: '邮箱已被使用' };
       const newUser = this.user.create(createUserInput);
       const res = await this.user.save(newUser);
       const token = this.jwtService.sign({ id: res.id });
@@ -52,11 +53,8 @@ export class UserService {
   // 用户登陆
   async userLogin({ email, password }: LoginUserInput) {
     try {
-      const user = await this.user.findOne({
-        where: { email },
-        select: ['password'],
-      });
-      if (!user) return { ok: false, error: '用户名或密码错误' };
+      const { ok, user } = await this.getUserByEmail(email, ['password']);
+      if (!ok) return { ok: false, error: '用户名或密码错误' };
 
       const isValidUser = await user.checkPassword(password);
       if (!isValidUser) return { ok: false, error: '用户名或密码错误' };
