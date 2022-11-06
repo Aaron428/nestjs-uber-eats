@@ -7,6 +7,11 @@ import { UserService } from './user.service';
 
 type MockRepositoryType<T> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
+const loginUser = {
+  email: 'george@163.com',
+  password: 'test',
+};
+
 const mockUser = {
   id: 1,
   email: 'george@163.com',
@@ -14,6 +19,7 @@ const mockUser = {
 };
 
 const getMockUser = {
+  id: 1,
   nickname: 'georgeKing',
   email: 'georgeKing@163.com',
   password: 'lovejiaminya',
@@ -30,14 +36,15 @@ const mockRepository = () => ({
 });
 
 const mockJwtService = {
-  sign: jest.fn(),
+  sign: jest.fn(() => 'mock token'),
   verify: jest.fn(),
 };
 
 describe('user service', () => {
   let service: UserService;
+  let jwtService: JwtService;
   let userRepository: MockRepositoryType<User>;
-  beforeAll(async () => {
+  beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         UserService,
@@ -53,6 +60,7 @@ describe('user service', () => {
     }).compile();
     service = module.get<UserService>(UserService);
     userRepository = module.get(getRepositoryToken(User));
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   it('service should be define', () => {
@@ -83,6 +91,35 @@ describe('user service', () => {
       expect(result).toEqual({ ok: false, error: '创建用户失败' });
     });
   });
-  it.todo('userLogin');
+  describe('userLogin', () => {
+    it('should fail if user is not exist', async () => {
+      userRepository.findOne.mockResolvedValue(undefined);
+      const res = await service.userLogin(loginUser);
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(res).toMatchObject({ ok: false, error: '用户名或密码错误' });
+    });
+
+    it('should fail if password it is wrong', async () => {
+      const mockUserData = {
+        ...getMockUser,
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+      userRepository.findOne.mockResolvedValue(mockUserData);
+      const res = await service.userLogin(loginUser);
+      expect(mockUserData.checkPassword).toHaveBeenCalledTimes(1);
+      expect(res).toEqual({ ok: false, error: '用户名或密码错误' });
+    });
+
+    it('should return token if password is correct', async () => {
+      const mockUserData = {
+        ...getMockUser,
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+      userRepository.findOne.mockResolvedValue(mockUserData);
+      await service.userLogin(loginUser);
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+      expect(jwtService.sign).toHaveBeenCalledWith({ id: expect.any(Number) });
+    });
+  });
   it.todo('getUserById');
 });

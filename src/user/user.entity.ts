@@ -40,7 +40,7 @@ export class User {
   email: string;
 
   @Field(() => String)
-  @Column()
+  @Column({ select: false })
   @Length(6, 32)
   password: string;
 

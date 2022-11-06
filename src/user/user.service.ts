@@ -1,8 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
-import { CreateUserInput, CreateUserResponse } from './dots/create-user.dto';
+import { CreateUserInput } from './dots/create-user.dto';
 import { LoginUserInput } from './dots/login.dto';
 import { User } from './user.entity';
 
@@ -24,18 +24,15 @@ export class UserService {
 
   // 创建用户
   async createAccount(createUserInput: CreateUserInput) {
-    const response: CreateUserResponse = { ok: false };
     try {
       const checkEmailIsUsed = await this.getUserByEmail(createUserInput.email);
       if (checkEmailIsUsed) {
-        Object.assign(response, { ok: false, error: '邮箱已被使用' });
-        return response;
+        return { ok: false, error: '邮箱已被使用' };
       }
       const newUser = this.user.create(createUserInput);
       const res = await this.user.save(newUser);
       const token = this.jwtService.sign({ id: res.id });
-      Object.assign(response, { ok: true, error: null, token });
-      return response;
+      return { ok: true, error: null, token };
     } catch (e) {
       console.log(e);
       return { ok: false, error: '创建用户失败' };
@@ -44,12 +41,20 @@ export class UserService {
 
   // 用户登陆
   async userLogin({ email, password }: LoginUserInput) {
-    const user = await this.getUserByEmail(email);
-    if (!user) return { ok: false, error: '用户名或密码错误' };
+    try {
+      const user = await this.user.findOne({
+        where: { email },
+        select: ['password'],
+      });
+      if (!user) return { ok: false, error: '用户名或密码错误' };
 
-    const isValidUser = await user.checkPassword(password);
-    if (!isValidUser) return { ok: false, error: '用户名或密码错误' };
+      const isValidUser = await user.checkPassword(password);
+      if (!isValidUser) return { ok: false, error: '用户名或密码错误' };
 
-    return { ok: true, token: this.jwtService.sign({ id: user.id }) };
+      return { ok: true, token: this.jwtService.sign({ id: user.id }) };
+    } catch (e) {
+      console.log(e);
+      return { ok: false, token: null, error: '登陆失败' };
+    }
   }
 }
